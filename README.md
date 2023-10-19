@@ -11,7 +11,7 @@
 
 ![Overview Screenshot](docs/images/overview.png?raw=true)
 
-This project is a reboot of Kafdrop 2.x, dragged kicking and screaming into the world of JDK 11+, Kafka 2.x, Helm and Kubernetes. It's a lightweight application that runs on Spring Boot and is dead-easy to configure, supporting SASL and TLS-secured brokers.
+This project is a reboot of Kafdrop 2.x, dragged kicking and screaming into the world of Java 17+, Kafka 2.x, Helm and Kubernetes. It's a lightweight application that runs on Spring Boot and is dead-easy to configure, supporting SASL and TLS-secured brokers.
 
 # Features
 * **View Kafka brokers** — topic and partition assignments, and controller status
@@ -24,7 +24,7 @@ This project is a reboot of Kafdrop 2.x, dragged kicking and screaming into the 
 
 # Requirements
 
-* Java 11 or newer
+* Java 17 or newer
 * Kafka (version 0.11.0 or newer) or Azure Event Hubs
 
 Optional, additional integration:
@@ -180,22 +180,25 @@ Starting with version 2.0.0, Kafdrop offers a set of Kafka APIs that mirror the 
 
 * `/topic`: Returns a list of all topics.
 
-## Swagger
-To help document the Kafka APIs, Swagger has been included. The Swagger output is available by default at the following Kafdrop URL:
+## OpenAPI Specification (OAS)
+To help document the Kafka APIs, OpenAPI Specification (OAS) has been included. The OpenAPI Specification output is available by default at the following Kafdrop URL:
 ```
-/v2/api-docs
+/v3/api-docs
+```
+
+It is also possible to access the Swagger UI (the HTML views) from the following URL:
+```
+/swagger-ui.html
 ```
 
 This can be overridden with the following configuration:
 ```
-springfox.documentation.swagger.v2.path=/new/swagger/path
+springdoc.api-docs.path=/new/oas/path
 ```
 
-Currently only the JSON endpoints are included in the Swagger output; the HTML views and Spring Boot debug endpoints are excluded.
-
-You can disable Swagger output with the following configuration:
+You can disable OpenAPI Specification output with the following configuration:
 ```
-swagger.enabled=false
+springdoc.api-docs.enabled=false
 ```
 
 ## CORS Headers
@@ -253,19 +256,41 @@ docker run -d --rm -p 9000:9000 \
     -e KAFKA_KEYSTORE="$(cat kafka.keystore.jks | base64)" \       # optional
     obsidiandynamics/kafdrop
 ```
+
+Rather than passing `KAFKA_PROPERTIES` as a base64-encoded string, you can also place a pre-populated `KAFKA_PROPERTIES_FILE` into the container:
+
+```sh
+cat << EOF > kafka.properties
+security.protocol=SASL_SSL
+sasl.mechanism=SCRAM-SHA-512
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="foo" password="bar"
+EOF
+
+docker run -d --rm -p 9000:9000 \
+    -v $(pwd)/kafka.properties:/tmp/kafka.properties:ro \
+    -v $(pwd)/kafka.truststore.jks:/tmp/kafka.truststore.jks:ro \
+    -v $(pwd)/kafka.keystore.jks:/tmp/kafka.keystore.jks:ro \
+    -e KAFKA_BROKERCONNECT=<host:port,host:port> \
+    -e KAFKA_PROPERTIES_FILE=/tmp/kafka.properties \
+    -e KAFKA_TRUSTSTORE_FILE=/tmp/kafka.truststore.jks \   # optional
+    -e KAFKA_KEYSTORE_FILE=/tmp/kafka.keystore.jks \       # optional
+    obsidiandynamics/kafdrop
+```
+
 #### Environment Variables
 ##### Basic configuration
-|Name                   |Description
-|-----------------------|-------------------------------
-|`KAFKA_BROKERCONNECT`  |Bootstrap list of Kafka host/port pairs. Defaults to `localhost:9092`.
-|`KAFKA_PROPERTIES`     |Additional properties to configure the broker connection (base-64 encoded).
-|`KAFKA_TRUSTSTORE`     |Certificate for broker authentication (base-64 encoded). Required for TLS/SSL.
-|`KAFKA_KEYSTORE`       |Private key for mutual TLS authentication (base-64 encoded).
+|Name                        |Description
+|----------------------------|-------------------------------
+|`KAFKA_BROKERCONNECT`       |Bootstrap list of Kafka host/port pairs. Defaults to `localhost:9092`.
+|`KAFKA_PROPERTIES`          |Additional properties to configure the broker connection (base-64 encoded).
+|`KAFKA_TRUSTSTORE`          |Certificate for broker authentication (base-64 encoded). Required for TLS/SSL.
+|`KAFKA_KEYSTORE`            |Private key for mutual TLS authentication (base-64 encoded).
 |`SERVER_SERVLET_CONTEXTPATH`|The context path to serve requests on (must end with a `/`). Defaults to `/`.
-|`SERVER_PORT`          |The web server port to listen on. Defaults to `9000`.
-|`SCHEMAREGISTRY_CONNECT `|The endpoint of Schema Registry for Avro or Protobuf message
-|`SCHEMAREGISTRY_AUTH`  |Optional basic auth credentials in the form `username:password`.
-|`CMD_ARGS`             |Command line arguments to Kafdrop, e.g. `--message.format` or `--protobufdesc.directory` or `--server.port`. 
+|`SERVER_PORT`               |The web server port to listen on. Defaults to `9000`.
+|`MANAGEMENT_SERVER_PORT`    |The Spring Actuator server port to listen on. Defaults to `9000`.
+|`SCHEMAREGISTRY_CONNECT `   |The endpoint of Schema Registry for Avro or Protobuf message
+|`SCHEMAREGISTRY_AUTH`       |Optional basic auth credentials in the form `username:password`.
+|`CMD_ARGS`                  |Command line arguments to Kafdrop, e.g. `--message.format` or `--protobufdesc.directory` or `--server.port`. 
 
 ##### Advanced configuration
 | Name                     |Description
@@ -372,7 +397,7 @@ To logout, browse to [/logout](http://localhost:8080/logout).
 
 # Contributing Guidelines
 
-All contributions are more than welcomed. Contributions may close an issue, fix a bug (reported or not reported), add new design blocks, improve the existing code, add new feature, and so on. In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone.
+See [here](CONTRIBUTING.md).
 
 ## Release workflow
 
